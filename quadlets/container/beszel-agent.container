@@ -3,9 +3,16 @@ Description=Beszel Agent
 
 [Container]
 Image=docker.io/henrygd/beszel-agent:latest
+# another agent can run on the local machine
+# or the binary on the router
 ContainerName=beszel-agent
-AutoUpdate=registry
 
+# will update when there is new image depending on the above
+# so :latest is gonna automatically break your agent if upstream fucks up
+#AutoUpdate=registry
+# or you decide yourself which is the :latest by controlling your registry
+# or don't
+#AutoUpdate=local
 # security risk
 Network=host
 
