@@ -19,7 +19,7 @@ HealthRetries=3
 HealthTimeout=10s
 HealthStartPeriod=30s
 
-Timezone=Asia/Taipei
+Timezone=
 
 PidsLimit=100
 ReadOnlyTmpfs=true
