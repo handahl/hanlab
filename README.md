@@ -116,6 +116,7 @@ Monitor the aggregate impact of the lab via the custom slice:
 ### 6. Planned
 
 * the scripts / commands for provisioning postgres and garage
+* something about the never-finished quadctl cli tool which I use for most of this
 
 ### License
 
