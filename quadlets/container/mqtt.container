@@ -1,0 +1,43 @@
+[Unit]
+Description=Mosquitto MQTT Broker
+Wants=influxdb.service
+AFter=influxdb.service
+
+[Container]
+ContainerName=mosquitto
+Image=docker.io/eclipse-mosquitto:2.0.22
+
+# access to influxdb
+Network=backend.network
+
+Volume=%h/.config/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:rw,Z
+Volume=%h/.local/share/mosquitto:/mosquitto:rw,Z
+
+HealthCmd=nc -z localhost 1883 || exit 1
+HealthInterval=30s
+HealthRetries=3
+HealthTimeout=10s
+HealthStartPeriod=30s
+
+Timezone=Asia/Taipei
+
+PidsLimit=100
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=40
+IOWeight=40
+MemoryHigh=512M
+
+ExecStartPre=/usr/bin/mkdir -p %h/.local/share/mosquitto/config
+
+[Install]
+WantedBy=default.target

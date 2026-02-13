@@ -1,0 +1,74 @@
+# ~/.config/containers/systemd/paperless.container
+[Unit]
+Description=Paperless-ngx web server and consumer
+Documentation=https://docs.paperless-ngx.com/
+Wants=postgres.service valkey.service traefik.service
+After=postgres.service valkey.service traefik.service
+
+[Container]
+Image=ghcr.io/paperless-ngx/paperless-ngx
+ContainerName=paperless
+
+Network=proxy.network
+Network=backend.network
+Volume=%h/.local/share/paperless/consume:/usr/src/paperless/consume:rw,Z
+Volume=%h/.local/share/paperless/data:/usr/src/paperless/data:rw,Z
+Volume=%h/.local/share/paperless/export:/usr/src/paperless/export:rw,Z
+Volume=%h/.local/share/paperless/media:/usr/src/paperless/media:rw,Z
+
+Environment=PAPERLESS_REDIS=redis://valkey:6379
+Secret=valkey_pass,type=env,target=PAPERLESS_REDIS_PASSWORD
+Environment=PAPERLESS_REDIS_PREFIX=paperless:
+
+Environment=PAPERLESS_DB_HOST=postgres
+Environment=PAPERLESS_DBNAME=paperless_db
+Environment=PAPERLESS_DBUSER=paperless_user
+Secret=paperless_pass,type=env,target=PAPERLESS_DBPASS
+
+#Environment=PAPERLESS_TIKA_ENABLED=true
+#Environment=PAPERLESS_TIKA_ENDPOINT=tika:9998
+#Environment=PAPERLESS_GOTENBERG_ENABLED=true
+#Environment=PAPERLESS_GOTENBERG_ENDPOINT=gotenberg:3000
+
+Timezone=
+Secret=paperless_secret_key,type=env,target=PAPERLESS_SECRET_KEY
+Environment=PAPERLESS_OCR_LANGUAGES=eng esp cht deu 
+
+# depends on reverse proxy settings
+#Environment=PAPERLESS_ENABLE_HTTP_REMOTE_USER=true
+#Environment=PAPERLESS_HTTP_REMOTE_USER_HEADER_NAME=HTTP_X_FORWARDED_USER
+Environment=PAPERLESS_URL=https://paperless.domain.tld
+# local network ip range, and/or container-name, tailscale ip-range
+Environment=PAPERLESS_ALLOWED_HOSTS=https://paperless.domain.tld,localhost,192.168.0.1/24,paperless
+
+Label=traefik.enable=true
+Label=traefik.http.routers.paperless.rule=Host(`paperless.domain.tld`)
+Label=traefik.http.routers.paperless.entrypoints=websecure
+Label=traefik.http.routers.paperless.tls=true
+Label=traefik.http.routers.paperless.middlewares=chainBasic@file
+Label=traefik.http.services.paperless.loadbalancer.server.port=8000
+
+#HealthCmd=curl -f http://localhost:8000/api/status/ || exit 1
+#HealthInterval=60s
+#HealthTimeout=15s
+#HealthRetries=3
+#HealthStartPeriod=15s
+
+PidsLimit=400
+#DropCapability=all
+NoNewPrivileges=true
+SecurityLabelDisable=false
+ReadOnlyTmpfs=true
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=70
+
+Slice=homelab.slice
+CPUWeight=20 
+MemoryMax=6G 
+OOMScoreAdjust=800
+
+[Install]
+WantedBy=default.target

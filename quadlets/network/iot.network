@@ -1,0 +1,17 @@
+# ~/.config/containers/systemd/networks
+[Unit]
+Description=Network for backend services not routed by Traefik
+Documentation=
+
+[Network]
+Driver=macvlan
+Parent=
+Subnet=192.168.16.0/24
+Gateway=192.168.16.1
+NetworkName=iot-network
+Internal=true   
+IPv6=false
+DisableDNS=false
+
+[Install]
+WantedBy=default.target

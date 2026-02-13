@@ -1,0 +1,9 @@
+# ~/.config/containers/systemd/volumes
+[Unit]
+Description=Vaultwarden Volume
+
+[Volume]
+VolumeName=vaultwarden
+Device=var/home/%h/.local/share/homelab/vaultwarden
+Options=bind,Z
+Type=none

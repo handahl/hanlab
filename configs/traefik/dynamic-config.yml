@@ -1,0 +1,154 @@
+# read the official docs please 
+# /.config/traefik/dynamic-config.yml
+
+tls:
+  certificates:
+    - certFile: /etc/traefik/certs/domain.cert.pem
+      keyFile: /etc/traefik/certs/private.key.pem
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certs/domain.cert.pem
+        keyFile: /etc/traefik/certs/private.key.pem
+
+http:
+  # ============================================================================
+  ## ROUTERS
+  # ============================================================================
+  routers:
+    # TRAEFIK DASHBOARD
+    dashboard:
+      rule: "Host(`traefik.domain.tld`)"
+      service: "api@internal"
+      middlewares: ["dashboardAuth", "chainBasic"] 
+      tls: {}
+
+    # KANIDM (Identity)
+    kanidm:
+      rule: "Host(`kanidm.domain.tld`)"
+      service: "kanidm-service"
+      middlewares: ["kanidmHeaders", "securityHeaders", "rateLimitAuth"]
+      tls: {}
+
+  # ============================================================================
+  ## SERVICES
+  # ============================================================================
+  services:
+    kanidm-service:
+      loadBalancer:
+        serversTransport: "kanidmTransport"
+        servers:
+          - url: "https://hanlab-kanidm:8443"
+
+  # ============================================================================
+  ## TRANSPORTS
+  # ============================================================================
+  serversTransports:
+    kanidmTransport:
+      insecureSkipVerify: false 
+      serverName: "kanidm.domain.tld"
+
+    routerTransport:
+      insecureSkipVerify: true
+
+
+  # ============================================================================
+  ## MIDDLEWARES
+  # ============================================================================
+  middlewares:
+    
+    # --- AUTHENTICATION ---
+    dashboardAuth:
+      basicAuth:
+        users:
+          - "user:password-hash"
+
+    kanidmForwardAuth:
+      forwardAuth:
+        address: "https://kanidm.domain.tld/oauth2/auth" 
+        trustForwardHeader: true
+        authResponseHeaders:
+          - X-Forwarded-User
+          - Authorization
+
+    # --- HEADERS ---
+    securityHeadersCommon:
+      headers:
+        forceSTSHeader: true
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        referrerPolicy: "strict-origin-when-cross-origin"
+        customFrameOptionsValue: "SAMEORIGIN"
+
+    cspStandard:
+      headers:
+        contentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'self';"
+
+    cspEnte:
+      headers:
+        contentSecurityPolicy: >-
+          default-src 'self';
+          script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval';
+          style-src 'self' 'unsafe-inline';
+          connect-src 'self' https://ente.domain.tld https://s3.domain.tld;
+          img-src 'self' data: blob: https://s3.domain.tld;
+          media-src 'self' blob: https://s3.domain.tld;
+          worker-src 'self' blob:;
+          frame-ancestors 'none';
+
+    kanidmHeaders:
+      headers:
+        customFrameOptionsValue: "DENY"
+
+    crossOriginIsolation:
+      headers:
+        customResponseHeaders:
+          Cross-Origin-Resource-Policy: "same-origin"
+          Cross-Origin-Embedder-Policy: "require-corp"
+          Cross-Origin-Opener-Policy: "same-origin"
+
+    corsEnte:
+      headers:
+        accessControlAllowMethods: ["GET", "HEAD", "OPTIONS", "PUT", "POST", "DELETE", "PATCH"]
+        accessControlAllowHeaders: ["*"]
+        accessControlExposeHeaders: ["ETag", "Location", "Content-Length", "Content-Range"]
+        accessControlAllowOriginList: ["https://photos.domain.tld", "https://ente.domain.tld"]
+        accessControlAllowCredentials: true
+        accessControlMaxAge: 100
+
+  # ==============================================================================
+  ## UTILITY MODULES
+  # ==============================================================================
+
+    rateLimitGeneral:
+      rateLimit:
+        average: 100
+        burst: 50
+        period: 1s
+
+    rateLimitAuth:
+      rateLimit:
+        average: 5
+        burst: 10
+        period: 1s
+
+  # ============================================================================
+  ## CHAINS
+  # ============================================================================
+  
+    chainBasic:
+      chain:
+        middlewares: ["securityHeadersCommon", "cspStandard", "rateLimitGeneral"]
+
+    chainEnte:
+      chain:
+        middlewares: ["securityHeadersCommon", "cspEnte", "corsEnte", "rateLimitGeneral"]
+
+    chainIsolated:
+      chain:
+        middlewares: ["securityHeadersCommon", "crossOriginIsolation", "rateLimitGeneral"]
+
+    chainProtected:
+      chain:
+        middlewares: ["securityHeadersCommon", "cspStandard", "oidcForwardAuth", "rateLimitGeneral"]

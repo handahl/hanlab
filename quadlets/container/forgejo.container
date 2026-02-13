@@ -1,0 +1,80 @@
+[Unit]
+Description=Forgejo Git Service
+Documentation=https://forge.org/docs/
+Wants=traefik.service postgres.service
+After=traefik.service postgres.service
+
+[Container]
+ContainerName=forgejo
+Image=codeberg.org/forgejo/forgejo:13
+
+Volume=%h/.local/share/forgejo:/data:rw,z
+
+Network=proxy.network
+Network=backend.network
+
+PublishPort=2222:2222
+
+Timezone=
+
+Environment=USER=git
+Environment=FORGEJO__WORK_DIR=/data/forgejo
+Environment=FORGEJO__CUSTOM_PATH=/data/forgejo
+
+Environment=FORGEJO__storage__STORAGE_TYPE=local
+Environment=FORGEJO__storage__STORAGE_PATH=/data/forgejo/data
+
+Environment=FORGEJO__database__HOST=postgres:5432
+Environment=FORGEJO__database__DB_TYPE=postgres
+Environment=FORGEJO__database__NAME=forgejo_db
+Environment=FORGEJO__database__USER=forgejo_user
+Secret=forgejo_pass,type=env,target=FORGEJO__database__PASSWD
+
+Environment=FORGEJO__server__PROTOCOL=http
+Environment=FORGEJO__server__DOMAIN=domain.tld
+Environment=FORGEJO__server__ROOT_URL=https://forgejo.domain.tld
+Environment=FORGEJO__server__HTTP_ADDR=0.0.0.0
+Environment=FORGEJO__server__HTTP_PORT=3000
+
+# I did not yet get ssh to work actually
+Environment=FORGEJO__server__DISABLE_SSH=false
+Environment=FORGEJO__server__START_SSH_SERVER=true
+Environment=FORGEJO__server__SSH_DOMAIN=git.domain.tld
+# trying to change the port is utter chaos, the container does what it wants
+Environment=FORGEJO__server__SSH_LISTEN_PORT=2222
+Environment=FORGEJO__server__SSH_PORT=2222
+
+# first registered user will be admin
+Environment=FORGEJO__service__DISABLE_REGISTRATION=true
+# to actually have it save the config to its file need to be false for first boot
+Environment=FORGEJO__security__INSTALL_LOCK=true
+Secret=forgejo_secret_key,type=env,target=FORGEJO__security__SECRET_KEY
+Secret=forgejo_internal_token,type=env,target=FORGEJO__security__INTERNAL_TOKEN
+
+PidsLimit=200
+DropCapability=all
+AddCapability=CHOWN,SETUID,SETGID,FOWNER,DAC_OVERRIDE,CAP_NET_BIND_SERVICE
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+Label=traefik.enable=true
+Label=traefik.http.routers.forge.rule=Host(`forge.domain.tld`)
+Label=traefik.http.routers.forge.entrypoints=websecure
+Label=traefik.http.routers.forge.tls=true
+Label=traefik.http.routers.forge.middlewares=chainBasic@file
+Label=traefik.http.services.forge.loadbalancer.server.port=3000
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=40
+IOWeight=40
+MemoryMin=1G
+
+[Install]
+WantedBy=default.target

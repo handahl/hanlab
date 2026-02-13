@@ -1,0 +1,54 @@
+[Unit]
+Description=Dozzle Log Viewer
+Documentation=https://dozzle.dev
+After=traefik.service
+Wants=traefik.service
+
+[Container]
+ContainerName=dozzle
+Image=docker.io/amir20/dozzle:latest
+
+#AutoUpdate=registry
+Timezone=
+Network=proxy.network
+
+# security risk for convenience
+# if a container fails too early or too quickly it is not visible in the logs 
+Volume=%t/podman/podman.sock:/var/run/docker.sock:ro,z
+
+Environment=DOZZLE_FILTER=status=running
+Environment=DOZZLE_NO_ANALYTICS=true
+
+# Health Check
+#HealthCmd=curl -f http://localhost:8080 || exit 1
+#HealthInterval=30s
+#HealthTimeout=10s
+#HealthRetries=3
+#HealthStartPeriod=30s
+
+PidsLimit=100
+DropCapability=all
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+Label=traefik.enable=true
+Label=traefik.http.routers.dozzle.rule=Host(`logs.domain.tld`)
+Label=traefik.http.routers.dozzle.entrypoints=websecure
+Label=traefik.http.routers.dozzle.tls=true
+Label=traefik.http.routers.dozzle.middlewares=chainBasic@file
+Label=traefik.http.services.dozzle.loadbalancer.server.port=8080
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=40
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=20
+IOWeight=20
+MemoryMax=256M
+
+[Install]
+WantedBy=default.target

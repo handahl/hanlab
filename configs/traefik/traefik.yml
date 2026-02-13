@@ -1,0 +1,67 @@
+# read the official docs please 
+# /.config/traefik/traefik.yml
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+  insecure: false
+
+# can be used for healthcheck
+ping: {}
+
+# no logs files within traefik, all for journald
+log:
+  format: json
+  level: INFO
+
+accessLog:
+  format: json
+  bufferingSize: 100
+  filters:
+    statusCodes:
+      - "400-499"  # Client errors
+      - "500-599"  # Server errors
+    retryAttempts: true
+    minDuration: "500ms"
+  fields:
+    defaultMode: keep
+    names:
+      ClientUsername: drop  # Redact sensitive data
+    headers:
+      defaultMode: keep
+      names:
+        Authorization: redact
+        Cookie: redact
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      tls: {}
+    forwardedHeaders:
+      # This allows Traefik to trust the X-Forwarded-For header
+      # coming from local network
+      trustedIPs: ["127.0.0.1/32", "192.168.12.0/24"]
+
+providers:
+  docker:
+  # podman still experimental?
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: proxy-network
+    watch: true
+
+  file:
+  # path given in the .container file, not real file path
+    filename: /etc/traefik/dynamic-config.yml
+    watch: true

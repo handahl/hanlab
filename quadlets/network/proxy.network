@@ -1,0 +1,18 @@
+# ~/.config/containers/systemd/networks
+[Unit]
+Description=For services routed by Traefik
+Documentation=
+
+[Network]
+Driver=bridge
+Subnet=192.168.12.0/24
+Gateway=192.168.12.1
+NetworkName=-proxy-network
+IPv6=false
+DisableDNS=false
+
+# untested
+#Options=allow_host_loopback=true
+
+[Install]
+WantedBy=default.target

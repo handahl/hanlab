@@ -1,0 +1,20 @@
+[Unit]
+Description=homelab system ressource guardrail
+Before=slices.target
+
+[Slice]
+# Intel i5 8500 with 6 cores, 100% = 1 core
+CPUQuota=550%
+
+# Total if 24G Ram
+# High = from here on systemd is not easily giving the homelab more Ram
+MemoryHigh=19G
+# This is the cap
+MemoryMax=21G
+
+# weights in relation to full capacity
+# the homelab can never take more than 90% of the systems ressources
+# for cpu use
+CPUWeight=90
+# or io use
+IOWeight=90

@@ -1,0 +1,46 @@
+# read the official docs please 
+replication_factor = 1
+consistency_mode = "consistent"
+
+# paths as given in the .containerfile, not real paths
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+metadata_snapshots_dir = "/var/lib/garage/snapshots"
+metadata_fsync = true
+data_fsync = false
+disable_scrub = false
+use_local_tz = false
+metadata_auto_snapshot_interval = "6h"
+
+db_engine = "lmdb"
+
+block_size = "1M"
+block_ram_buffer_max = "256MiB"
+block_max_concurrent_reads = 16
+
+lmdb_map_size = "1T"
+
+compression_level = 1
+
+# RPC: Inter-node communication (Data Plane)
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+rpc_secret = "secret-rpc-secret"
+
+[s3_api]
+api_bind_addr = "[::]:3900"
+s3_region = "eu-central-2"
+root_domain = "s3.domain.tld"
+path_style = true
+
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = "garage.domain.tld"
+add_host_to_metrics = false
+
+[admin]
+api_bind_addr = "0.0.0.0:3903"
+#metrics_token = "secret-metrics-token"
+#metrics_require_token = true
+admin_token = "secret-admin-token"
+#trace_sink = "http://localhost:4317"

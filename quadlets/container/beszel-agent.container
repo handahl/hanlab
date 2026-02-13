@@ -1,0 +1,49 @@
+[Unit]
+Description=Beszel Agent
+
+[Container]
+Image=docker.io/henrygd/beszel-agent:latest
+ContainerName=beszel-agent
+AutoUpdate=registry
+
+# security risk
+Network=host
+
+# Environment variables
+Environment=HUB_URL=https://beszel.domain.tld
+Environment=Port=45876
+# token and ssh-key are in the beszel hub "+ add system"
+Secret=beszel_token,type=env,target=TOKEN
+Secret=beszel_key,type=env,target=KEY
+
+# Podman socket access for container monitoring
+# security risk
+Volume=%t/podman/podman.sock:/var/run/docker.sock:ro,z
+
+# untested
+# Host filesystem access for disk monitoring (optional, for multi-partition setups)
+# Volume=/:/extra-filesystems/root:ro
+
+# untested
+# SMART monitoring support
+# AddDevice=/dev/sda
+# AddDevice=/dev/nvme0n1
+
+PidsLimit=100
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+[Service]
+Restart=always
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=30
+IOWeight=30
+MemoryMax=512M
+
+[Install]
+WantedBy=default.target

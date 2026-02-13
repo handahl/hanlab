@@ -1,0 +1,37 @@
+[Unit]
+Description=Kanidm Identity Platform
+Wants=traefik.service
+After=traefik.service
+
+[Container]
+ContainerName=kanidm
+Image=docker.io/kanidm/server@sha256:55af50cf02909ff8f62d3a083870e697a47658c2dac94598dc5dbeb7de5955f3
+
+Volume=%h/.local/share/kanidm:/data:rw,Z
+Volume=%h/.config/kanidm/server.toml:/data/server.toml:ro,Z
+Volume=%h/.config/certs:/data/certs:ro,z
+
+Network=proxy.network
+Timezone=
+
+PidsLimit=300
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+DropCapability=all
+UserNS=keep-id:uid=1000,gid=1000
+
+# no traefik routing, kanidm wants to have its own certificates and 
+# will be in traefiks dynamic-config.yml
+
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=60
+
+Slice=homelab.slice
+CPUWeight=100
+IOWeight=300
+MemoryMin=512M
+
+[Install]
+WantedBy=default.target

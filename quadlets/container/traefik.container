@@ -1,0 +1,45 @@
+
+[Unit]
+Description=Traefik Reverse Proxy
+Documentation=https://docs.traefik.org/
+
+[Container]
+ContainerName=traefik
+Image=docker.io/traefik:v3.6
+Network=proxy.network
+# needs in /etc/sysctl.d/traefik-ports.conf:
+# net.ipv4.ip_unprivileged_port_start=80
+PublishPort=80:80
+PublishPort=443:443
+Timezone=
+
+Volume=%h/.config/traefik/traefik.yml:/etc/traefik/traefik.yml:ro,Z
+Volume=%h/.config/traefik/dynamic-config.yml:/etc/traefik/dynamic-config.yml:ro,Z
+Volume=%h/.config/certs:/etc/traefik/certs:ro,z
+Volume=%t/podman/podman.sock:/var/run/docker.sock:ro,z
+
+PidsLimit=300
+DropCapability=all
+AddCapability=CAP_NET_BIND_SERVICE 
+ReadOnlyTmpfs=false
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+#HealthCmd=traefik healthcheck --ping
+#HealthInterval=30s
+#HealthRetries=3
+#HealthTimeout=10s
+#HealthStartPeriod=20s
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=100
+IOWeight=100
+MemoryMin=512M
+
+[Install]
+WantedBy=default.target

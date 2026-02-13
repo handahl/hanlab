@@ -1,0 +1,72 @@
+[Unit]
+Description=Zigbee2MQTT
+Wants=mosquitto.service
+After=mosquitto.service
+
+[Container]
+ContainerName=zigbee2mqtt
+Image=docker.io/koenkk/zigbee2mqtt:2.6.2
+
+# If in a pod needs the podname.pod (incl. the .pod)
+#Pod=home-automation.pod
+
+# persistent storage, selinux aware
+Volume=%h/.local/share/zigbee2mqtt:/app/data:rw,Z
+
+# traefik access
+Network=proxy.network
+
+# other backend containers access
+Network=backend.network
+
+# where to find the mosquitto
+Environment=ZIGBEE2MQTT_CONFIG_MQTT_SERVER=mqtt://mosquitto:1883
+
+# only needed if not routed by reverse proxy
+# not done in the .container if it is part of a .pod
+#PublishPort=127.0.0.1:8080:8080
+
+# adding the Sonoff-Dongle-E
+# also needs separate policy for selinux / avc
+AddDevice=/dev/ttyUSB0
+PodmanArgs=--device=/dev/ttyUSB0 --group-add=keep-groups
+
+Label=traefik.enable=1
+Label=traefik.http.routers.zigbee2mqtt.rule=Host(`zigbee2mqtt.domain.tld`)
+Label=traefik.http.routers.zigbee2mqtt.entrypoints=websecure
+Label=traefik.http.routers.zigbee2mqtt.tls=true
+Label=traefik.http.routers.zigbee2mqtt.middlewares=chainBasic@file
+Label=traefik.http.services.zigbee2mqtt.loadbalancer.server.port=8080
+
+# if it is unhealthy traefik will not route it
+# if it does not a healthcheck trafik does not care
+#HealthCmd=wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1
+#HealthInterval=30s
+#HealthRetries=3
+#HealthTimeout=10s
+#HealthStartPeriod=30s
+
+Timezone=
+
+PidsLimit=100
+ReadOnly=true
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=40
+IOWeight=40
+# at least 256mb memory will be kept available
+MemoryMin=256M
+
+ExecStartPre=/usr/bin/mkdir -p %h/.local/share/zigbee2mqtt
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,47 @@
+# ~/.config/containers/systemd/postgres.container
+[Unit]
+Description=PostgreSQL Database
+
+[Container]
+ContainerName=postgres
+Image=docker.io/pgvector/pgvector:pg18-bookworm
+
+# or
+# Image=postgres.image
+
+Network=backend.network
+
+Volume=%h/.local/share/postgres:/var/lib/postgresql:rw,Z
+Secret=pg_admin_pass,type=env,target=POSTGRES_PASSWORD
+Secret=pg_admin_user,type=env,target=POSTGRES_USER
+
+Timezone=
+
+PodmanArgs=--shm-size=512m 
+PidsLimit=400 
+DropCapability=all
+AddCapability=SETGID,SETUID,CHOWN,FOWNER,DAC_OVERRIDE
+NoNewPrivileges=true
+SecurityLabelDisable=false
+Sysctl=net.core.somaxconn=1024
+
+HealthCmd=pg_isready -U "$POSTGRES_USER" -d postgres || exit 1
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=40s
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=40
+
+ExecStartPre=/usr/bin/mkdir -p %h/.local/share/postgres
+
+Slice=homelab.slice
+CPUWeight=100
+IOWeight=100
+MemoryMin=1G
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,12 @@
+# ~/.config/containers/systemd/images
+[Unit]
+Description=Custom Vector Postgres DB Image
+
+[Image]
+# requires the containerfile to specify "Image=postgres.image"
+Image=localhost/homelab-db-vec:v0.2
+PodmanArgs=--pull=never
+# Bypass TLS verification for local/private pulls
+PodmanArgs=--tls-verify=false
+
+# because it is selfbuilt with buildah ~

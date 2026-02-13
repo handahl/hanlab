@@ -1,0 +1,62 @@
+[Unit]
+Description=Vaultwarden Password Manager
+Wants=postgres.service traefik.service
+After=postgres.service traefik.service
+
+[Container]
+Image=docker.io/vaultwarden/server:latest
+ContainerName=vaultwarden
+
+Network=proxy.network
+Network=backend.network
+Volume=%h/.local/share/hanlab/vaultwarden:/data:rw,Z
+
+Environment=SIGNUPS_ALLOWED=true
+Environment=WEBSOCKET_ENABLED=true
+# for postgres, use 
+# echo -n "postgres://db_user:db-password@postgres:5432/db-name" | podman secret create "vaultwarden_db_url" -
+# where postgres:5432 is name of the postgres container (might differ)
+# the postgres has to be provisioned seperately
+Secret=vaultwarden_db_url,type=env,target=DATABASE_URL
+Environment=DOMAIN=https://vaultwarden.domain.tld
+# needs to be ArgonID
+Secret=vaultwarden_admin_token,type=env,target=ADMIN_TOKEN
+Environment=ROCKET_WORKERS=10
+Environment=IP_HEADER=X-Forwarded-For
+
+HealthCmd=curl -f http://localhost:80/api/alive || exit 1
+HealthInterval=60s
+HealthRetries=3
+HealthStartPeriod=10s
+
+Timezone=
+
+PidsLimit=200
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+#DropCapability=all
+
+Label=traefik.enable=true
+Label=traefik.http.routers.vaultwarden.rule=Host(`vaultwarden.domain.tld`)
+Label=traefik.http.routers.vaultwarden.entrypoints=websecure
+# if certificates are provided as is
+# otherwhise needs the name of the provider
+Label=traefik.http.routers.vaultwarden.tls=true
+Label=traefik.http.services.vaultwarden.loadbalancer.server.port=80
+# see trafik/dynamic-config.yml
+Label=traefik.http.routers.vaultwarden.middlewares=chainBasic@file
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=60
+IOWeight=60
+MemoryMin=256M
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,4 @@
+# ~/.config/containers/systemd/images
+[Image]
+# requires the containerfile to specify "Image=kanidm.image"
+Image=docker.io/kanidm/server@sha256:55af50cf02909ff8f62d3a083870e697a47658c2dac94598dc5dbeb7de5955f3

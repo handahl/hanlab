@@ -1,0 +1,82 @@
+[Unit]
+Description=Ente Photos Server (Museum)
+Documentation=https://ente.io/docs/
+Wants=postgres.service garage.service traefik.service
+After=postgres.service garage.service traefik.service
+# to make ente work with ente-web, flatpak and app the CORS need
+# to be handled correctly by the reverse proxy
+# android app and flatpak are easier than web-app
+# when registering the code will be in the logs:
+# "journalctl --user -xeu ente.service"
+
+[Container]
+ContainerName=ente
+Image=ghcr.io/ente-io/server:9fe7feff880a6f3e08ef320013e0fa58688ef51b
+# access to postgres / s3 storage
+Network=backend.network
+# access to traefik / s3
+Network=proxy.network
+
+Timezone=
+
+# currently needs a postgres, no other db
+Environment=ENTE_DB_HOST=postgres
+Environment=ENTE_DB_PORT=5432
+Environment=ENTE_DB_USER=ente_user
+Environment=ENTE_DB_NAME=ente_db
+Secret=ente_pass,type=env,target=ENTE_DB_PASSWORD
+Secret=ente_s3_key,type=env,target=ENTE_S3_B2_EU_CEN_KEY
+Secret=ente_s3_secret,type=env,target=ENTE_S3_B2_EU_CEN_SECRET
+
+# these need to be within what ente expects, not random passwords
+Secret=ente_key_encr,type=env,target=ENTE_KEY_ENCRYPTION
+Secret=ente_key_hash,type=env,target=ENTE_KEY_HASH
+Secret=ente_jwt_secret,type=env,target=ENTE_JWT_SECRET
+
+Environment=ENTE_S3_B2_EU_CEN_ARE_LOCAL_BUCKETS=false
+Environment=ENTE_S3_B2_EU_CEN_USE_PATH_STYLE_URLS=true
+
+# I used garage, standard recommendation is minio. 
+# just needs s3 compatible
+Environment=ENTE_S3_B2_EU_CEN_ENDPOINT=https://s3.domain.tld
+Environment=ENTE_S3_B2_EU_CEN_REGION=eu-central-2
+Environment=ENTE_S3_B2_EU_CEN_BUCKET=b2-eu-cen
+Environment=ENTE_SERVER_PORT=8080
+Environment=NEXT_PUBLIC_ENTE_ENDPOINT=https://ente.domain.tld
+# id of the first registered user to then use the cli
+# to add users and then change their storage allowance / expiration
+Environment=ENTE_INTERNAL_ADMIN="1580559962386438"
+
+PidsLimit=300
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+SecurityLabelDisable=false
+#DropCapability=all
+
+#HealthCmd=bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080' || exit 1
+#HealthInterval=30s
+#HealthTimeout=10s
+#HealthRetries=3
+#HealthStarteriod=60s
+
+Label=traefik.enable=true
+Label=traefik.http.routers.ente.rule=Host(`ente.domain.tld`)
+Label=traefik.http.routers.ente.entrypoints=websecure
+Label=traefik.http.routers.ente.tls=true
+Label=traefik.http.routers.ente-server.middlewares=chainEnte@file
+Label=traefik.http.services.ente.loadbalancer.server.port=8080
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=40
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=50
+IOWeight=30
+MemoryMin=1G
+MemoryHigh=4G
+
+[Install]
+WantedBy=default.target

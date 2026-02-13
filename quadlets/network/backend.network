@@ -1,0 +1,16 @@
+# ~/.config/containers/systemd/networks
+[Unit]
+Description=Network for backend services not routed by Traefik
+Documentation=
+
+[Network]
+Driver=bridge
+Subnet=192.168.14.0/24
+Gateway=192.168.14.1
+NetworkName=backend-network
+Internal=true   
+IPv6=false
+DisableDNS=false
+
+[Install]
+WantedBy=default.target

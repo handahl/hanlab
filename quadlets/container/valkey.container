@@ -1,0 +1,51 @@
+[Unit]
+Description=Valkey In-Memory Database (Hardened)
+
+[Container]
+ContainerName=valkey
+Image=docker.io/valkey/valkey:8.0-alpine
+Network=backend.network
+
+# Persistence and Config
+Volume=%h/.local/share/valkey:/data:rw,Z
+Volume=%h/.config/valkey/config:/etc/valkey:ro,Z
+
+# I use type=env for the HealthCheck convenience, see below
+Secret=valkey_pass,type=env,target=VALKEY_PASSWORD
+
+# Memory overcommit
+PodmanArgs=--sysctl net.core.somaxconn=511
+
+HealthCmd=valkey-cli -a "$VALKEY_PASSWORD" ping | grep -q PONG
+HealthInterval=30s
+HealthTimeout=10s
+HealthRetries=3
+HealthStartPeriod=10s
+
+Timezone=
+
+PidsLimit=200
+DropCapability=all
+AddCapability=SETGID,SETUID,CHOWN,FOWNER,DAC_OVERRIDE
+NoNewPrivileges=true
+ReadOnlyTmpfs=true
+
+[Service]
+Restart=on-failure
+RestartSec=15
+
+Slice=homelab.slice
+CPUWeight=60
+IOWeight=60
+MemoryMin=512M
+
+[Install]
+WantedBy=default.target
+
+## Setup help
+#Environment=REDIS_HOST=valkey
+#Environment=REDIS_PORT=6379
+#Secret=valkey_pass,type=env,target=REDIS_PASSWORD
+
+# Or for services expecting a full URL:
+# REDIS_URL=redis://:password@valkey:6379/0

@@ -1,0 +1,12 @@
+# ~/.config/containers/systemd/volumes
+[Unit]
+Description=Garage Data Volume
+
+[Volume]
+# if no volume name is given podman will use "systemd-garage" or "systemd-filename"
+VolumeName=garage-data
+Device=/var/lib/storage/homelab/garage/data
+# Z tells selinux to lable it correctly to allow access for this container only
+# better practice would be to use custom policies, e.g. with udica
+Options=bind,Z
+Type=none

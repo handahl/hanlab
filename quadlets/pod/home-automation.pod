@@ -1,0 +1,39 @@
+[Unit]
+# try to avoid pods
+Description=Pod for Home Assistant, Mosquitto, and Zigbee2MQTT
+# the containers need similarly:
+# Wants= or Requires=home-automation-pod.service
+# note: systemd follows naming conventions, turning . into - and adding .service
+# moving .pod to -pod, .volume to -volume, 
+# but for not .container
+# yet adding systemd to the name when no name is given
+Wants=traefik.service
+After=traefik.service
+
+[Pod]
+PodName=home-automation
+# Publishing ports is only needed if not routed by reverse proxy
+# of if it needs to be accessed by containers not in the pod
+# the containers in the pod talk to each other on localhost
+
+# Port for Home Assistant
+#PublishPort=8123:8123
+
+# Port for Mosquitto 
+#PublishPort=1883:1883
+
+# Port for Zigbee2Mqtt
+#PublishPort=8080:8080
+
+# Port for Matter Server
+#PublishPort=5580:5580
+
+# access to Traefik
+Network=proxy.network
+
+# access to iot and e.g. esp32-c3 wifi with the same ip range
+# needs a shim. I never really figured it out. 
+Network=iot.network
+
+# access to influxdb
+Network=backend.network

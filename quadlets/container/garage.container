@@ -1,0 +1,89 @@
+# `~/.config/containers/systemd/garage.container`
+[Unit]
+Description=hanlab Garage Object Storage Service
+Wants=traefik.service
+After=traefik.service
+# the container can be configured with
+# podman exec -it garage /garage [command]
+# where the first garage is the container name, can differ
+# e.g podman exec -it homelab-garage /garage status
+# can be aliased: "type garage"
+# "garage is aliased to `podman exec -it garage /garage'"
+
+[Container]
+ContainerName=garage
+Image=docker.io/dxflrs/garage:v2.2.0
+
+Network=proxy.network
+Network=backend.network
+
+Timezone=
+Volume=%h/.config/garage/garage.toml:/etc/garage.toml:ro,Z
+
+# these go on the nvme or ssd
+Volume=%h/.local/share/garage/meta:/var/lib/garage/meta:rw,Z
+Volume=%h/.local/share/garage/snap:/var/lib/garage/snapshots:rw,Z
+
+# this can go on the hdd, better xfs or zfs than btrfs or others
+# I put a hdd with a ssd as cache/prewrite into a xfs pool
+Volume=/var/mnt/garage/data:/var/lib/garage/data:rw,Z
+
+Label=traefik.enable=true
+Label=traefik.http.routers.garage-s3.rule=Host(`s3.domain.tld`)
+Label=traefik.http.routers.garage-s3.entrypoints=websecure
+Label=traefik.http.routers.garage-s3.tls=true
+Label=traefik.http.routers.garage-s3.middlewares=chainEnte@file
+Label=traefik.http.routers.garage-s3.service=garage-s3
+Label=traefik.http.services.garage-s3.loadbalancer.server.port=3900
+#PublishPort=127.0.0.1:3900:3900
+
+Label=traefik.http.routers.garage-web.rule=Host(`garage.domain.tld`)
+Label=traefik.http.routers.garage-web.entrypoints=websecure
+Label=traefik.http.routers.garage-web.tls=true
+Label=traefik.http.routers.garage-web.middlewares=chainEnte@file
+Label=traefik.http.routers.garage-web.service=garage-web
+Label=traefik.http.services.garage-web.loadbalancer.server.port=3902
+#PublishPort=127.0.0.1:3902:3902
+
+# conceptual
+#Label=traefik.http.routers.garage-admin.rule=Host(`garage.domain.tld/admin`)
+#Label=traefik.http.routers.garage-admin.entrypoints=websecure
+#Label=traefik.http.routers.garage-admin.tls=true
+#Label=traefik.http.routers.garage-admin.middlewares=chainEnte@file
+#Label=traefik.http.routers.garage-admin.service=garage-admin
+#Label=traefik.http.services.garage-admin.loadbalancer.server.port=3902
+#PublishPort=127.0.0.1:3902:3901
+
+#Label=traefik.http.routers.garage-tpe.rule=Host(`garage.domain.tld/node-taipei`)
+#Label=traefik.http.routers.garage-tpe.entrypoints=websecure
+#Label=traefik.http.routers.garage-tpe.tls=true
+#Label=traefik.http.routers.garage-tpe.middlewares=chainEnte@file
+#Label=traefik.http.routers.garage-tpe.service=garage-tpe
+#Label=traefik.http.services.garage-tpe.loadbalancer.server.port=3902
+#PublishPort=127.0.0.1:3902:3903
+
+SecurityLabelDisable=false
+DropCapability=all
+ReadOnlyTmpfs=true
+NoNewPrivileges=true
+PidsLimit=500
+
+#HealthCmd=/garage json-api GetClusterHealth || exit 1
+#HealthInterval=30s
+#HealthTimeout=10s
+#HealthRetries=3
+#HealthStartPeriod=60s
+
+[Service]
+Restart=on-failure
+RestartSec=15
+TimeoutStartSec=30
+TimeoutStopSec=70
+
+Slice=homelab.slice
+CPUWeight=80
+IOWeight=80
+MemoryMin=2G
+
+[Install]
+WantedBy=default.target
