@@ -76,7 +76,7 @@ podman volume ls      # Persistent volumes
 
 ### 4. Observability and Troubleshooting
 
-#### Logs**
+#### Logs
 
 The systemd journal is the primary source of truth for both container output and lifecycle events.
 
@@ -111,7 +111,11 @@ Monitor the aggregate impact of the lab via the custom slice:
 * /quadlets: Definitions for containers, images, networks, and volumes.  
 * /configs: Template/stub configuration files (e.g., Traefik, Kanidm).  
 * /systemd-units: Custom .slice files for resource management.  
-* /scripts: Utility scripts for maintenance and deployment. wip
+* /scripts: Utility scripts for maintenance and deployment. 
+
+### 6. Planned
+
+* the scripts / commands for provisioning postgres and garage
 
 ### License
 
